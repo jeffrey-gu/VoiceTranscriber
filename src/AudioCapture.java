@@ -1,8 +1,8 @@
 import javax.sound.sampled.*;
+import javax.xml.transform.Source;
 import java.io.ByteArrayOutputStream;
 import java.util.Scanner;
-import java.util.concurrent.atomic.AtomicBoolean;
-//import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeUnit;
 
 public class AudioCapture {
     private int bufferLimitFactor = 5;  // fraction of line buffer size that will be read in
@@ -21,7 +21,7 @@ public class AudioCapture {
 
     public void setUpMicrophone() {
         // TESTING ONLY
-        //        this.listMixers();
+//                this.listMixers();
         this.getMixer();
         this.setUpTargetDataLine();
     }
@@ -91,7 +91,24 @@ public class AudioCapture {
 
         } catch (LineUnavailableException luaEx) {
             //TODO: throw exception
-            System.out.println("line is unavailable");
+            System.out.println("target line is unavailable");
+        }
+    }
+
+
+    // TODO: test playback
+    private SourceDataLine setUpSourceLine() {
+        DataLine.Info sourceInfo = new DataLine.Info(SourceDataLine.class, this.format);
+        try {
+            SourceDataLine sourceLine = (SourceDataLine) AudioSystem.getLine(sourceInfo);
+            sourceLine.open(this.format);
+            System.out.println("Source Line setup success");
+            return sourceLine;
+        } catch (LineUnavailableException luaEx) {
+            //TODO: throw exception
+            luaEx.printStackTrace();
+            System.out.println("source line is unavailable");
+            return null;
         }
     }
 
@@ -101,7 +118,11 @@ public class AudioCapture {
     private void readAudioData(TargetDataLine line) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
 //        AudioInputStream in = new AudioInputStream();
+
+        // array for I/O audio data
         byte[] data = new byte[line.getBufferSize() / bufferLimitFactor];
+
+        SourceDataLine sourceLine = setUpSourceLine();
 
         Thread audioCaptureThread = new Thread(new Runnable() {
             public void run() {
@@ -115,8 +136,19 @@ public class AudioCapture {
                     // read next chunk from TDL and fill in the data buffer
                     numBytesRead = line.read(data, 0, data.length);
 
-                    // save data chunk
-                    out.write(data, 0, numBytesRead);
+                    //TODO: save data chunk (uncomment for actual use)
+//                    out.write(data, 0, numBytesRead);
+
+                    //TEST PLAYBACK
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                        System.out.println("sleepin");
+                    } catch (InterruptedException e) {
+                        System.out.println("sleep interrupted");
+                        e.printStackTrace();
+                    }
+                    sourceLine.write(data, 0, numBytesRead);
+                    //END TEST PLAYBACK
                 }
 
                 // flush out remaining data in the Mixer
